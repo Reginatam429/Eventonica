@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+dist/
+build/
+
+# env files
+.env
+.env.local
+apps/server/.env
+apps/web/.env
+
+# database
+*.db
+*.sqlite
+
+# misc
+.DS_Store
