@@ -9,9 +9,9 @@ build/
 apps/server/.env
 apps/web/.env
 
-# database
+# prisma sqlite
 *.db
-*.sqlite
+*.db-journal
 
 # misc
 .DS_Store

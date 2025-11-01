@@ -1,0 +1,259 @@
+// ---------- Generators & Datasource ----------
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // local dev; use "postgresql" in prod
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+enum EventStatus {
+  draft
+  published
+  archived
+}
+
+enum OrderStatus {
+  created
+  paid
+  canceled
+  refunded
+}
+
+enum AssignmentRole {
+  vendor
+  vendor_gate
+  staff_checkin
+}
+
+enum UpdateKind {
+  announcement
+  schedule_change
+  venue_change
+  general
+}
+
+enum LocationType {
+  room
+  stage
+  hall
+  booth
+  online
+  other
+}
+
+// ---------- Core Models ----------
+model User {
+  id           String @id @default(cuid())
+  name         String
+  email        String @unique
+  passwordHash String
+  roles        Json // e.g. ["attendee","organizer"]  (Json for SQLite)
+
+  // relations
+  events        Event[]           @relation("OrganizerEvents")
+  orders        Order[]
+  tickets       Ticket[]          @relation("UserTickets")
+  feedback      Feedback[]
+  assignments   EventAssignment[]
+  notifications Notification[]
+  vendorProfile VendorProfile?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  Waitlist    Waitlist[]
+  EventUpdate EventUpdate[]
+}
+
+model VendorProfile {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id])
+
+  displayName  String
+  categories   Json // e.g. ["AV","Food"]  (Json for SQLite)
+  description  String
+  website      String?
+  contactEmail String?
+}
+
+// Event + content
+model Event {
+  id          String @id @default(cuid())
+  organizer   User   @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  organizerId String
+
+  title       String
+  description String
+  type        String
+  venue       String
+  address     String
+  startAt     DateTime
+  endAt       DateTime
+  capacity    Int
+  status      EventStatus @default(draft)
+  published   Boolean     @default(false)
+
+  // relations
+  ticketTypes TicketType[]
+  schedule    ScheduleItem[]
+  orders      Order[]
+  tickets     Ticket[]
+  updates     EventUpdate[]
+  waitlist    Waitlist[]
+  feedback    Feedback[]
+  assignments EventAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizerId])
+  @@index([status, published, startAt])
+}
+
+model ScheduleItem {
+  id      String @id @default(cuid())
+  event   Event  @relation(fields: [eventId], references: [id])
+  eventId String
+
+  title    String
+  speaker  String
+  startsAt DateTime
+  endsAt   DateTime
+
+  // flexible location for any event type
+  locationName  String?
+  locationType  LocationType?
+  onlineUrl     String?
+  locationNotes String?
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId, startsAt])
+}
+
+model TicketType {
+  id      String @id @default(cuid())
+  event   Event  @relation(fields: [eventId], references: [id])
+  eventId String
+
+  name       String
+  priceCents Int
+  quantity   Int
+  salesStart DateTime
+  salesEnd   DateTime
+
+  createdAt DateTime @default(now())
+  Ticket    Ticket[]
+
+  @@index([eventId])
+}
+
+model Order {
+  id      String @id @default(cuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  event   Event  @relation(fields: [eventId], references: [id])
+  eventId String
+
+  totalCents      Int
+  status          OrderStatus
+  stripeSessionId String?
+  tickets         Ticket[]
+  createdAt       DateTime    @default(now())
+
+  @@index([eventId, status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Ticket {
+  id           String     @id @default(cuid())
+  order        Order      @relation(fields: [orderId], references: [id])
+  orderId      String
+  event        Event      @relation(fields: [eventId], references: [id])
+  eventId      String
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+  ticketTypeId String
+
+  attendeeName  String
+  attendeeEmail String
+  qrCode        String // payload (e.g., TICKET:<id>:<hash>)
+  checkedInAt   DateTime?
+
+  // optional owner link for “My Tickets” convenience
+  owner   User?   @relation("UserTickets", fields: [ownerId], references: [id])
+  ownerId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId, checkedInAt])
+  @@index([ticketTypeId])
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}
+
+// ---------- Roles & Updates ----------
+model EventAssignment {
+  id      String         @id @default(cuid())
+  event   Event          @relation(fields: [eventId], references: [id])
+  eventId String
+  user    User           @relation(fields: [userId], references: [id])
+  userId  String
+  role    AssignmentRole // vendor (display), vendor_gate/staff_checkin (access)
+
+  @@unique([eventId, userId, role])
+  @@index([eventId, role])
+}
+
+model EventUpdate {
+  id       String @id @default(cuid())
+  event    Event  @relation(fields: [eventId], references: [id])
+  eventId  String
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  title     String
+  body      String
+  kind      UpdateKind @default(general)
+  isMajor   Boolean    @default(false)
+  createdAt DateTime   @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  type      String // event_update | order_confirm | ...
+  title     String
+  body      String
+  data      Json // payload (e.g., { eventId, updateId })
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
