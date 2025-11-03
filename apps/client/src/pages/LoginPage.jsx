@@ -50,10 +50,6 @@ export default function LoginPage() {
             {error && <p className="error">{error}</p>}
             <button type="submit">Login</button>
         </form>
-        <p className="hint">
-            Use one of your seeded users, e.g. <code>org@test.com</code>,{' '}
-            <code>admin@test.com</code>, etc.
-        </p>
         </div>
     );
 }
