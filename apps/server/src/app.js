@@ -13,7 +13,6 @@ import updatesRoutes from './updates/updates.routes.js';
 import notificationsRoutes from './notifications/notifications.routes.js';
 import ordersRoutes from './orders/orders.routes.js';
 import checkinRoutes from './checkin/checkin.routes.js';
-// import ticketsRoutes from './tickets/tickets.routes.js';
 
 const app = express();
 
@@ -34,7 +33,6 @@ app.use('/api', updatesRoutes);
 app.use('/api', notificationsRoutes);
 app.use('/api', ordersRoutes);
 app.use('/api', checkinRoutes);
-// app.use('/api', ticketsRoutes);
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'not_found' }));
