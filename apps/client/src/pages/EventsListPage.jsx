@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchEvents } from '../api';
+import { listEvents } from '../api';
 
 export default function EventsListPage() {
     const [events, setEvents] = useState([]);
@@ -10,7 +10,7 @@ export default function EventsListPage() {
         let cancelled = false;
         (async () => {
         try {
-            const data = await fetchEvents();
+            const data = await listEvents();
             if (!cancelled) setEvents(data.events || []);
         } catch (err) {
             if (!cancelled) setError(err.message || 'Failed to load events');

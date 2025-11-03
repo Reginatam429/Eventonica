@@ -1,59 +1,62 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../AuthContext.jsx";
 
 export default function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
-    const [form, setForm] = useState({ email: '', password: '' });
-    const [error, setError] = useState('');
-
-    function handleChange(e) {
-        setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-    }
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setError('');
+        setError("");
         try {
-        await login(form.email, form.password);
-        navigate('/events');
+        const user = await login(email, password);
+        if (user) {
+            // 👇 go to dashboard after login
+            navigate("/dashboard");
+        }
         } catch (err) {
-        setError(err.message || 'Login failed');
+        console.error(err);
+        setError("Invalid email or password");
         }
     }
 
     return (
         <div className="page">
-        <h1>Login</h1>
-        <form onSubmit={handleSubmit} className="card">
-            <label>
-            Email
-            <input
-                name="email"
+        <div className="page-inner auth-page">
+            <h1>Login</h1>
+            <form className="card auth-card" onSubmit={handleSubmit}>
+            {error && <div className="error-banner">{error}</div>}
+            <label className="field">
+                <span>Email</span>
+                <input
                 type="email"
-                value={form.email}
-                onChange={handleChange}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-            />
+                />
             </label>
-            <label>
-            Password
-            <input
-                name="password"
+            <label className="field">
+                <span>Password</span>
+                <input
                 type="password"
-                value={form.password}
-                onChange={handleChange}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
-            />
+                />
             </label>
-            {error && <p className="error">{error}</p>}
-            <button type="submit">Login</button>
-            <p className="muted">
-            Don&apos;t have an account?{' '}
-            <Link to="/register">Register</Link>.
+            <button type="submit" className="btn primary">
+                Login
+            </button>
+            <p className="auth-switch">
+                Don&apos;t have an account?{" "}
+                <Link to="/register">Register</Link>
             </p>
-        </form>
+            </form>
+        </div>
         </div>
     );
 }

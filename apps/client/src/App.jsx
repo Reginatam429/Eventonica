@@ -1,4 +1,3 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
 
@@ -14,10 +13,22 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import MyTicketsPage from "./pages/MyTicketsPage.jsx";
 
 function PrivateRoute({ children }) {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="page">
+            <div className="page-inner">
+                <p>Loading...</p>
+            </div>
+            </div>
+        );
+    }
+
     if (!user) {
         return <Navigate to="/login" replace />;
     }
+
     return children;
 }
 
@@ -25,71 +36,67 @@ export default function App() {
     const { user } = useAuth();
 
     return (
-        <div className="app-root">
-        {/* ✅ use the shared navbar component */}
-        <Navbar />
-
-        <main className="main">
+        <div className="app-shell">
+            <Navbar />
+            <main className="app-main">
             <Routes>
-            {/* Landing -> dashboard if logged in */}
-            <Route
+                {/* Landing or redirect to dashboard if already logged in */}
+                <Route
                 path="/"
                 element={
-                user ? <Navigate to="/dashboard" replace /> : <LandingPage />
+                    user ? <Navigate to="/dashboard" replace /> : <LandingPage />
                 }
-            />
-
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-
-            <Route
+                />
+    
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+    
+                {/* Private routes */}
+                <Route
                 path="/dashboard"
                 element={
-                <PrivateRoute>
+                    <PrivateRoute>
                     <DashboardPage />
-                </PrivateRoute>
+                    </PrivateRoute>
                 }
-            />
-
-            <Route
+                />
+                <Route
                 path="/events"
                 element={
-                <PrivateRoute>
+                    <PrivateRoute>
                     <EventsListPage />
-                </PrivateRoute>
+                    </PrivateRoute>
                 }
-            />
-            <Route
+                />
+                <Route
                 path="/events/:id"
                 element={
-                <PrivateRoute>
+                    <PrivateRoute>
                     <EventDetailPage />
-                </PrivateRoute>
+                    </PrivateRoute>
                 }
-            />
-
-            <Route
+                />
+                <Route
                 path="/my-tickets"
                 element={
-                <PrivateRoute>
+                    <PrivateRoute>
                     <MyTicketsPage />
-                </PrivateRoute>
+                    </PrivateRoute>
                 }
-            />
-
-            <Route
+                />
+                <Route
                 path="/checkin"
                 element={
-                <PrivateRoute>
+                    <PrivateRoute>
                     <CheckinPage />
-                </PrivateRoute>
+                    </PrivateRoute>
                 }
-            />
-
-            {/* fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+                />
+    
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-        </main>
+            </main>
         </div>
     );
 }

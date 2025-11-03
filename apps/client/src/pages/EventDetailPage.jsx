@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-    fetchEvent,
-    fetchTicketTypes,
-    fetchAnnouncements,
+    getEvent,
+    listTicketTypes,
+    listAnnouncements,
     createAnnouncement,
-    fetchVendors,
     assignVendor,
     createTicketType,
     checkout,
-    fetchAnalytics,
-    fetchNotifications,
+    listAnalytics,
+    listNotifications,
 } from '../api';
 import { useAuth } from '../../../client/src/AuthContext.jsx';
 
@@ -45,10 +44,10 @@ export default function EventDetailPage() {
         (async () => {
         try {
             const [eventData, ttData, annData, vendData] = await Promise.all([
-            fetchEvent(eventId),
-            fetchTicketTypes(eventId),
-            fetchAnnouncements(eventId),
-            fetchVendors(eventId),
+            getEvent(eventId),
+            listTicketTypes(eventId),
+            listAnnouncements(eventId),
+            listVendors(eventId),
             ]);
             if (cancelled) return;
             setEvent(eventData.event);
@@ -100,10 +99,10 @@ export default function EventDetailPage() {
         try {
         await createAnnouncement(eventId, newAnnouncement.trim());
         setNewAnnouncement('');
-        const annData = await fetchAnnouncements(eventId);
+        const annData = await listAnnouncements(eventId);
         setAnnouncements(annData.announcements || []);
         if (isLoggedIn) {
-            const notif = await fetchNotifications();
+            const notif = await listNotifications();
             setNotifications(notif.notifications || []);
         }
         } catch (err) {
@@ -121,7 +120,7 @@ export default function EventDetailPage() {
         try {
         await assignVendor(eventId, vendorEmail.trim());
         setVendorEmail('');
-        const vendData = await fetchVendors(eventId);
+        const vendData = await listVendors(eventId);
         setVendors(vendData.vendors || []);
         } catch (err) {
         setVendorError(err.message || 'Failed to assign vendor');
@@ -148,7 +147,7 @@ export default function EventDetailPage() {
             priceCents: price,
             quantity,
         });
-        const ttData = await fetchTicketTypes(eventId);
+        const ttData = await listTicketTypes(eventId);
         setTicketTypes(ttData.ticketTypes || ttData.ticket_types || []);
         } catch (err) {
         alert(err.message || 'Failed to create ticket type');
@@ -157,7 +156,7 @@ export default function EventDetailPage() {
 
     async function handleLoadAnalytics() {
         try {
-        const data = await fetchAnalytics(eventId);
+        const data = await listAnalytics(eventId);
         setAnalytics(data.analytics || data);
         } catch (err) {
         alert(err.message || 'Failed to load analytics');

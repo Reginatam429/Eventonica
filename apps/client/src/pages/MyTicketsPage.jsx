@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext.jsx";
-import { fetchMyTickets } from "../api.js";
+import { listMyTickets } from "../api.js";
 
 export default function MyTicketsPage() {
     const { user, token } = useAuth();
@@ -18,7 +18,7 @@ export default function MyTicketsPage() {
 
         (async () => {
         try {
-            const data = await fetchMyTickets(token);
+            const data = await listMyTickets(token);
             if (!cancelled) setTickets(data.tickets || data || []);
         } catch (err) {
             if (!cancelled) setError("Could not load your tickets.");
