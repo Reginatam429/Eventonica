@@ -1,4 +1,5 @@
 import pool from '../db.js';
+import { sendEmail } from '../utils/email.js';
 
 function hasRole(user, role) {
     return Array.isArray(user.roles) && user.roles.includes(role);
@@ -89,20 +90,20 @@ export async function createAnnouncement(req, res) {
         );
 
         for (const u of users) {
-            // EMAIL STUB
-            console.log(
-            '[EMAIL] to=%s subject=%s body=%s',
-            u.email,
-            `Update for event: ${event.title}`,
-            msg,
-            );
+            const subject = `Update for event: ${event.title}`;
+            const body = `Hello ${u.name || ''},\n\n${msg}\n\n— Eventonica Team`;
+            try {
+                await sendEmail({
+                to: u.email,
+                subject,
+                text: body,
+                });
+            } catch (err) {
+                console.error('Email failed for %s:', u.email, err.message);
+            }
 
-            // PUSH STUB
-            console.log(
-            '[PUSH] user=%s payload=%j',
-            u.id,
-            payload,
-            );
+            // PUSH stub (still logs)
+            console.log('[PUSH] user=%s payload=%j', u.id, payload);
         }
         }
 
