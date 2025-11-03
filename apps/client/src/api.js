@@ -1,123 +1,138 @@
-const API_BASE = '/api';
+const API_BASE =
+    import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
-function getAuthHeaders() {
+function authHeaders() {
     const token = localStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function handleJson(res) {
-    const data = await res.json().catch(() => ({}));
+async function request(path, options = {}) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+        ...(options.headers || {}),
+        },
+    });
+
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : null;
+
     if (!res.ok) {
-        const message = data.error || data.message || res.statusText;
-        throw new Error(message);
+        const msg = data?.error || data?.message || res.statusText;
+        throw new Error(msg);
     }
     return data;
 }
 
-export async function loginRequest(email, password) {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+// ---------- AUTH ----------
+export function register({ name, email, password }) {
+    return request('/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+    });
+}
+
+export function login(email, password) {
+    return request('/auth/login', {
+        method: 'POST',
         body: JSON.stringify({ email, password }),
     });
-    return handleJson(res); // { user, token }
 }
 
-export async function fetchEvents() {
-    const res = await fetch(`${API_BASE}/events`);
-    return handleJson(res); // { events: [...] }
+export function getMe() {
+    return request('/auth/me', { method: 'GET' });
 }
 
-export async function fetchEvent(eventId) {
-    const res = await fetch(`${API_BASE}/events/${eventId}`);
-    return handleJson(res); // { event }
+// ---------- EVENTS ----------
+export function fetchEvents() {
+    return request('/events', { method: 'GET' });
 }
 
-export async function fetchTicketTypes(eventId) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/ticket-types`);
-    return handleJson(res); // { ticketTypes: [...] } (whatever your backend sends)
+export function fetchEvent(id) {
+    return request(`/events/${id}`, { method: 'GET' });
 }
 
-export async function checkout(eventId, items) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/checkout`, {
+export function createEvent(data) {
+    return request('/events', {
         method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify(data),
     });
-    return handleJson(res); // { order, tickets }
 }
 
-export async function fetchAnnouncements(eventId) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/announcements`);
-    return handleJson(res); // { announcements: [...] }
+export function updateEvent(id, data) {
+    return request(`/events/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
 }
 
-export async function createAnnouncement(eventId, message) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/announcements`, {
+export function deleteEvent(id) {
+    return request(`/events/${id}`, { method: 'DELETE' });
+}
+
+// ---------- TICKETS ----------
+export function fetchTicketTypes(eventId) {
+    return request(`/events/${eventId}/ticket-types`, { method: 'GET' });
+}
+
+export function createTicketType(eventId, data) {
+    return request(`/events/${eventId}/ticket-types`, {
         method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify(data),
     });
-    return handleJson(res);
 }
 
-export async function fetchVendors(eventId) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/vendors`);
-    return handleJson(res); // { vendors: [...] }
-}
-
-export async function assignVendor(eventId, email) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/vendors`, {
+export function checkout(eventId, tickets) {
+    return request(`/events/${eventId}/checkout`, {
         method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ tickets }),
     });
-    return handleJson(res);
 }
 
-export async function createTicketType(eventId, payload) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/ticket-types`, {
+export function checkinTicket(token) {
+    return request('/checkin', {
         method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-        },
-        body: JSON.stringify(payload),
-    });
-    return handleJson(res);
-}
-
-export async function fetchAnalytics(eventId) {
-    const res = await fetch(`${API_BASE}/events/${eventId}/analytics`, {
-        headers: getAuthHeaders(),
-    });
-    return handleJson(res);
-}
-
-export async function checkInTicket(token) {
-    const res = await fetch(`${API_BASE}/checkin`, {
-        method: 'POST',
-        headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-        },
         body: JSON.stringify({ token }),
     });
-    return handleJson(res);
 }
 
-export async function fetchNotifications() {
-    const res = await fetch(`${API_BASE}/me/notifications`, {
-        headers: getAuthHeaders(),
+// ---------- ANNOUNCEMENTS ----------
+export function fetchAnnouncements(eventId) {
+    return request(`/events/${eventId}/announcements`, { method: 'GET' });
+}
+
+export function createAnnouncement(eventId, message) {
+    return request(`/events/${eventId}/announcements`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
     });
-    return handleJson(res);
+}
+
+// ---------- VENDORS ----------
+export function fetchVendors(eventId) {
+    return request(`/events/${eventId}/vendors`, { method: 'GET' });
+}
+
+export function assignVendor(eventId, email) {
+    return request(`/events/${eventId}/vendors`, {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    });
+}
+
+// ---------- ANALYTICS ----------
+export function fetchAnalytics(eventId) {
+    return request(`/events/${eventId}/analytics`, { method: 'GET' });
+}
+
+// ---------- NOTIFICATIONS ----------
+export function fetchNotifications() {
+    return request('/me/notifications', { method: 'GET' });
+}
+
+// ---------- GENERIC ----------
+export function fetchMyTickets() {
+    return request('/me/tickets', { method: 'GET' });
 }

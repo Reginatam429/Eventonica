@@ -1,55 +1,88 @@
-import React from 'react';
-import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../client/src/AuthContext.jsx';
-import EventsListPage from './pages/EventsListPage.jsx';
-import EventDetailPage from './pages/EventDetailPage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import CheckinPage from './pages/CheckinPage.jsx';
+// src/App.jsx
+import { Routes, Route, NavLink } from "react-router-dom";
+import { useAuth } from "./AuthContext.jsx";
 
-function NavBar() {
-    const { user, isLoggedIn, logout } = useAuth();
-    const navigate = useNavigate();
+import LandingPage from "./pages/LandingPage.jsx";
+import EventsListPage from "./pages/EventsListPage.jsx";
+import EventDetailPage from "./pages/EventDetailPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import CheckinPage from "./pages/CheckinPage.jsx";
 
-    function handleLogout() {
-        logout();
-        navigate('/login');
-    }
+function App() {
+    const { user, logout } = useAuth();
 
-    return (
-        <nav className="nav">
-        <Link to="/" className="logo">Eventonica</Link>
-        <div className="nav-links">
-            <NavLink to="/">Events</NavLink>
-            <NavLink to="/checkin">Check-In</NavLink>
-        </div>
-        <div className="nav-right">
-            {isLoggedIn && user ? (
-            <>
-                <span className="user-pill">
-                {user.email} ({user.roles.join(', ')})
-                </span>
-                <button onClick={handleLogout}>Logout</button>
-            </>
-            ) : (
-            <NavLink to="/login">Login</NavLink>
-            )}
-        </div>
-        </nav>
-    );
-}
-
-export default function App() {
     return (
         <div className="app">
-        <NavBar />
+        {/* NAVBAR */}
+        <nav className="nav">
+            <div className="nav-links">
+            <NavLink to="/" className="nav-brand">
+                Eventonica
+            </NavLink>
+            <NavLink
+                to="/events"
+                className={({ isActive }) =>
+                "nav-link" + (isActive ? " active" : "")
+                }
+            >
+                Events
+            </NavLink>
+            <NavLink
+                to="/checkin"
+                className={({ isActive }) =>
+                "nav-link" + (isActive ? " active" : "")
+                }
+            >
+                Check-in
+            </NavLink>
+            </div>
+
+            <div className="nav-right">
+            {user ? (
+                <>
+                <span className="user-pill">
+                    {user.name || user.email} ({user.roles?.join(", ")})
+                </span>
+                <button onClick={logout}>Logout</button>
+                </>
+            ) : (
+                <>
+                <NavLink
+                    to="/login"
+                    className={({ isActive }) =>
+                    "nav-link" + (isActive ? " active" : "")
+                    }
+                >
+                    Login
+                </NavLink>
+                <NavLink
+                    to="/register"
+                    className={({ isActive }) =>
+                    "nav-link nav-link-primary" + (isActive ? " active" : "")
+                    }
+                >
+                    Register
+                </NavLink>
+                </>
+            )}
+            </div>
+        </nav>
+
+        {/* MAIN */}
         <main className="main">
             <Routes>
-            <Route path="/" element={<EventsListPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/events" element={<EventsListPage />} />
+            <Route path="/events/:id" element={<EventDetailPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/events/:eventId" element={<EventDetailPage />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route path="/checkin" element={<CheckinPage />} />
+            <Route path="*" element={<p>Not found</p>} />
             </Routes>
         </main>
         </div>
     );
 }
+
+export default App;

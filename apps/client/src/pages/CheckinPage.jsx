@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { checkInTicket } from '../api';
+import { checkinTicket } from '../api';
 import { useAuth } from '../../../client/src/AuthContext.jsx';
 
 export default function CheckinPage() {
@@ -25,7 +25,7 @@ export default function CheckinPage() {
         }
 
         try {
-        const data = await checkInTicket(token.trim());
+        const data = await checkinTicket(token.trim());
         setResult(data);
         } catch (err) {
         setError(err.message || 'Check-in failed');
