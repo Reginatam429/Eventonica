@@ -14,6 +14,7 @@ async function request(path, options = {}) {
         ...authHeaders(),
         ...(options.headers || {}),
         },
+        ...options,
     });
 
     const text = await res.text();
@@ -84,10 +85,12 @@ export function createTicketType(eventId, data) {
     });
 }
 
-export function checkout(eventId, tickets) {
+export async function checkout(eventId, items, token) {
+    // items: [{ ticketTypeId, quantity }]
     return request(`/events/${eventId}/checkout`, {
-        method: 'POST',
-        body: JSON.stringify({ tickets }),
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: JSON.stringify({ items }),
     });
 }
 
@@ -133,6 +136,10 @@ export function fetchNotifications() {
 }
 
 // ---------- GENERIC ----------
-export function fetchMyTickets() {
-    return request('/me/tickets', { method: 'GET' });
+export async function fetchMyTickets(token) {
+    return request("/me/tickets", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
 }
+
+export { request };

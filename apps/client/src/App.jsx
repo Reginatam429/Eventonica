@@ -1,6 +1,8 @@
 // src/App.jsx
-import { Routes, Route, NavLink } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
+
+import Navbar from "./components/Navbar.jsx";
 
 import LandingPage from "./pages/LandingPage.jsx";
 import EventsListPage from "./pages/EventsListPage.jsx";
@@ -8,81 +10,86 @@ import EventDetailPage from "./pages/EventDetailPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import CheckinPage from "./pages/CheckinPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import MyTicketsPage from "./pages/MyTicketsPage.jsx";
 
-function App() {
-    const { user, logout } = useAuth();
+function PrivateRoute({ children }) {
+    const { user } = useAuth();
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+    return children;
+}
+
+export default function App() {
+    const { user } = useAuth();
 
     return (
-        <div className="app">
-        {/* NAVBAR */}
-        <nav className="nav">
-            <div className="nav-links">
-            <NavLink to="/" className="nav-brand">
-                Eventonica
-            </NavLink>
-            <NavLink
-                to="/events"
-                className={({ isActive }) =>
-                "nav-link" + (isActive ? " active" : "")
-                }
-            >
-                Events
-            </NavLink>
-            <NavLink
-                to="/checkin"
-                className={({ isActive }) =>
-                "nav-link" + (isActive ? " active" : "")
-                }
-            >
-                Check-in
-            </NavLink>
-            </div>
+        <div className="app-root">
+        {/* ✅ use the shared navbar component */}
+        <Navbar />
 
-            <div className="nav-right">
-            {user ? (
-                <>
-                <span className="user-pill">
-                    {user.name || user.email} ({user.roles?.join(", ")})
-                </span>
-                <button onClick={logout}>Logout</button>
-                </>
-            ) : (
-                <>
-                <NavLink
-                    to="/login"
-                    className={({ isActive }) =>
-                    "nav-link" + (isActive ? " active" : "")
-                    }
-                >
-                    Login
-                </NavLink>
-                <NavLink
-                    to="/register"
-                    className={({ isActive }) =>
-                    "nav-link nav-link-primary" + (isActive ? " active" : "")
-                    }
-                >
-                    Register
-                </NavLink>
-                </>
-            )}
-            </div>
-        </nav>
-
-        {/* MAIN */}
         <main className="main">
             <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/events" element={<EventsListPage />} />
-            <Route path="/events/:id" element={<EventDetailPage />} />
+            {/* Landing -> dashboard if logged in */}
+            <Route
+                path="/"
+                element={
+                user ? <Navigate to="/dashboard" replace /> : <LandingPage />
+                }
+            />
+
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/checkin" element={<CheckinPage />} />
-            <Route path="*" element={<p>Not found</p>} />
+
+            <Route
+                path="/dashboard"
+                element={
+                <PrivateRoute>
+                    <DashboardPage />
+                </PrivateRoute>
+                }
+            />
+
+            <Route
+                path="/events"
+                element={
+                <PrivateRoute>
+                    <EventsListPage />
+                </PrivateRoute>
+                }
+            />
+            <Route
+                path="/events/:id"
+                element={
+                <PrivateRoute>
+                    <EventDetailPage />
+                </PrivateRoute>
+                }
+            />
+
+            <Route
+                path="/my-tickets"
+                element={
+                <PrivateRoute>
+                    <MyTicketsPage />
+                </PrivateRoute>
+                }
+            />
+
+            <Route
+                path="/checkin"
+                element={
+                <PrivateRoute>
+                    <CheckinPage />
+                </PrivateRoute>
+                }
+            />
+
+            {/* fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </main>
         </div>
     );
 }
-
-export default App;

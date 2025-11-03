@@ -1,3 +1,133 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* App shell */
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* background: radial-gradient(circle at top, #243bff 0, #020024 55%, #000 100%); */
+  color: #f5f7ff;
+}
+
+.app-main {
+  flex: 1;
+  padding: 1.5rem 2rem;
+}
+
+/* NAVBAR  ----------------------------------------------------- */
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(90deg, rgba(94, 215, 181, 0.98), rgba(52, 162, 142, 0.98));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.navbar-left,
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.navbar-brand {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+  color: #5fd4ff;
+  text-decoration: none;
+}
+
+.navbar-brand:hover {
+  color: #ffffff;
+}
+
+.nav-link {
+  font-size: 0.95rem;
+  text-decoration: none;
+  color: #c7d2ff;
+  padding-bottom: 0.15rem;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.nav-link:hover {
+  color: #ffffff;
+}
+
+.nav-link-active {
+  color: #ffffff;
+  border-color: #5fd4ff;
+}
+
+/* user / buttons */
+
+.user-pill {
+  font-size: 0.82rem;
+  color: #e5e7ff;
+  background: rgba(53, 81, 146, 0.8);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+}
+
+.user-roles {
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.btn {
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.btn-primary {
+  background: #5fd4ff;
+  color: #050816;
+}
+
+.btn-primary:hover {
+  background: #8be3ff;
+  box-shadow: 0 6px 18px rgba(95, 212, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #111827;
+  color: #e5e7ff;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+}
+
+.btn-secondary:hover {
+  background: #1f2937;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Make top content not get hidden behind sticky navbar */
+.page {
+  margin-top: 1rem;
+}
+
 /* Reset / base */
 * {
   box-sizing: border-box;

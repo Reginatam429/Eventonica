@@ -1,51 +1,90 @@
-import React from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext.jsx";
 
 export default function Navbar() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate("/");
+    };
+
+    const hasRole = (role) => user?.roles?.includes(role);
 
     return (
-        <header className="nav">
-        <div className="nav-left">
-            <Link to="/" className="nav-brand">
+        <nav className="navbar">
+        <div className="navbar-left">
+            <NavLink to="/" className="navbar-brand">
             Eventonica
-            </Link>
-            <NavLink to="/events" className="nav-link">
-            Events
             </NavLink>
-            <NavLink to="/checkin" className="nav-link">
-            Check-in
-            </NavLink>
+
+            {user && (
+            <>
+                <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                    "nav-link" + (isActive ? " nav-link-active" : "")
+                }
+                >
+                Dashboard
+                </NavLink>
+                <NavLink
+                to="/events"
+                className={({ isActive }) =>
+                    "nav-link" + (isActive ? " nav-link-active" : "")
+                }
+                >
+                Events
+                </NavLink>
+                <NavLink
+                to="/my-tickets"
+                className={({ isActive }) =>
+                    "nav-link" + (isActive ? " nav-link-active" : "")
+                }
+                >
+                My Tickets
+                </NavLink>
+                {(hasRole("organizer") || hasRole("admin")) && (
+                <NavLink
+                    to="/checkin"      // ✅ all lowercase, matches route
+                    className={({ isActive }) =>
+                    "nav-link" + (isActive ? " nav-link-active" : "")
+                    }
+                >
+                    Check-in
+                </NavLink>
+                )}
+            </>
+            )}
         </div>
-        <div className="nav-right">
+
+        <div className="navbar-right">
             {user ? (
             <>
-                <span className="nav-user">
-                Hi, {user.name || user.email}
+                <span className="user-pill">
+                {user.name || user.email}{" "}
+                {user.roles?.length ? (
+                    <span className="user-roles">
+                    ({user.roles.join(", ")})
+                    </span>
+                ) : null}
                 </span>
-                <button
-                type="button"
-                className="nav-button"
-                onClick={logout}
-                >
+                <button className="btn btn-secondary" onClick={handleLogout}>
                 Logout
                 </button>
             </>
             ) : (
             <>
-                <NavLink to="/login" className="nav-link">
+                <NavLink to="/login" className="btn btn-primary">
                 Login
                 </NavLink>
-                <NavLink
-                to="/register"
-                className="nav-link nav-link-primary"
-                >
+                <NavLink to="/register" className="btn btn-secondary">
                 Register
                 </NavLink>
             </>
             )}
         </div>
-        </header>
+        </nav>
     );
 }
