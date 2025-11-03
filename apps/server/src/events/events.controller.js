@@ -159,3 +159,60 @@ export async function deleteEvent(req, res, next) {
         return next(err);
     }
 }
+
+export async function getEventAnalytics(req, res, next) {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const roles = req.user.roles || [];
+
+    try {
+        // 1) Load event & authorize organizer/admin
+        const { rows: [ev] } = await pool.query(
+            'SELECT id, organizer_id, capacity, title FROM public.events WHERE id = $1',
+            [id],
+        );
+        if (!ev) return res.status(404).json({ error: 'not_found' });
+
+        const isOwner = ev.organizer_id === userId;
+        const isAdmin = roles.includes('admin');
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ error: 'forbidden' });
+        }
+
+        // 2) Basic ticket counts
+        const { rows: [tix] } = await pool.query(`
+            SELECT
+                COUNT(*)::int             AS tickets_total,
+                COUNT(checked_in_at)::int AS tickets_checked_in
+            FROM public.tickets
+            WHERE event_id = $1
+        `, [id]);
+
+        // 3) Revenue from confirmed orders
+        const { rows: [rev] } = await pool.query(`
+            SELECT
+                COALESCE(SUM(oi.qty * oi.price_cents), 0)::int AS revenue_cents
+            FROM public.order_items oi
+            JOIN public.orders o ON o.id = oi.order_id
+            WHERE o.event_id = $1
+            AND o.status = 'confirmed'
+        `, [id]);
+
+        const totalTickets      = tix?.tickets_total || 0;
+        const checkedIn         = tix?.tickets_checked_in || 0;
+        const remainingCapacity = Math.max(ev.capacity - totalTickets, 0);
+
+        return res.json({
+            event: {
+                id: ev.id,
+                title: ev.title,
+            },
+            tickets_total: totalTickets,
+            tickets_checked_in: checkedIn,
+            remaining_capacity: remainingCapacity,
+            revenue_cents: rev?.revenue_cents || 0,
+        });
+    } catch (e) {
+        return next(e);
+    }
+}
