@@ -10,70 +10,103 @@ Eventonica is a full-stack event management platform designed to simplify the en
 [![OOP](https://img.shields.io/badge/Pattern-OOP-black)](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/Object-oriented_JS)
 
 ## 🛠 Tech Stack
+**Frontend**  
+
+- React (Vite)  
+- React Router DOM  
+- CSS Modules  
+- Fetch API
 
 **Backend**  
 
 - Node.js  
 - Express.js  
-- PostgreSQL (via `pg` client)  
-- JWT for authentication  
-- Nodemailer + Ethereal for email notifications  
-
-**Architecture & Design**  
-
-- RESTful API  
-- Object-Oriented Controllers  
-- Modular route structure  
-- Layered data model (users, events, tickets, orders, notifications)
-
-**Testing & Tools**  
-
-- Postman for endpoint testing  
-- Console & database verification  
-- Ethereal email previews for notification validation  
+- PostgreSQL  
+- JWT Authentication  
+- Nodemailer + Ethereal (for email notifications)  
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Clone the repo
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/eventonica.git
-cd eventonica/apps/server
+git clone https://github.com/yourusername/Eventonica.git
+cd Eventonica
 ```
 
-### 2. Install dependencies
+---
+
+### 2. Backend Setup
+
+Navigate to the backend folder:
+
+```bash
+cd apps/server
+```
+
+#### Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Create a `.env` file
+#### Create a `.env` file
 
 ```env
-DATABASE_URL=postgresql://<user>@localhost:5432/eventonica
+DATABASE_URL=postgresql://youruser@localhost:5432/eventonica
 JWT_SECRET=your_jwt_secret
+ETHEREAL_USER=your_generated_ethereal_user
+ETHEREAL_PASS=your_generated_ethereal_password
 PORT=4000
 ```
 
-### 4. Migrate and seed the database
+#### Run migrations and seed the database
 
 ```bash
 npm run db:migrate
 npm run db:seed
 ```
 
-### 5. Run the server
+#### Start the backend server
 
 ```bash
 npm run dev
 ```
 
-Server runs at:  
-👉 http://localhost:4000  
-Frontend (when built) will connect to it on port `5173`.
+Your API should now be running at:  
+👉 **http://localhost:4000/api**
 
+---
+
+### 3. Frontend Setup
+
+Open a new terminal and go to the frontend folder:
+
+```bash
+cd apps/client
+```
+
+#### Install dependencies
+
+```bash
+npm install
+```
+
+#### Create a `.env` file for frontend
+
+```env
+VITE_API_URL=http://localhost:4000/api
+```
+
+#### Run the development server
+
+```bash
+npm run dev
+```
+
+Then open the link shown in your terminal (usually http://localhost:5173).
 ---
 
 ## 🧪 API Overview
