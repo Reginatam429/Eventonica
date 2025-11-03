@@ -7,6 +7,7 @@ import authRoutes from './auth/auth.routes.js';
 import eventRoutes from './events/events.routes.js';
 import ticketTypeRoutes from './ticketTypes/ticketTypes.routes.js';
 import usersRoutes from './users/users.routes.js';
+import adminUsersRoutes from './admin/admin.users.routes.js';
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', ticketTypeRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/admin/users', adminUsersRoutes);
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'not_found' }));

@@ -1,13 +1,17 @@
 import pool from '../db.js';
 import bcrypt from 'bcrypt';
+import db from '../db.js';
 import { z } from 'zod';
 import { signJwt } from './jwt.js';
+
 
 const registerSchema = z.object({
     name: z.string().min(1),
     email: z.string().email(),
     password: z.string().min(6),
 });
+
+const normalizeEmail = (e) => String(e || '').trim().toLowerCase();
 
 export async function register(req, res) {
     const parsed = registerSchema.safeParse(req.body);
@@ -32,18 +36,43 @@ export async function register(req, res) {
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
 
 export async function login(req, res) {
-    const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: 'invalid_body', details: parsed.error.flatten() });
-    const { email, password } = parsed.data;
-
-    const { rows: [u] } = await pool.query(`SELECT * FROM users WHERE email=$1`, [email]);
-    if (!u) return res.status(401).json({ error: 'invalid_credentials' });
-
-    const ok = await bcrypt.compare(password, u.password_hash);
-    if (!ok) return res.status(401).json({ error: 'invalid_credentials' });
-
-    const token = signJwt({ id: u.id, roles: u.roles });
-    res.json({ user: { id: u.id, name: u.name, email: u.email, roles: u.roles }, token });
+    try {
+        const email = normalizeEmail(req.body?.email);
+        const password = String(req.body?.password || '');
+    
+        if (!email || !password) {
+            return res.status(400).json({ error: 'invalid_body' });
+        }
+    
+        const { rows } = await db.query(
+            `SELECT id, name, email, roles, password_hash
+            FROM public.users
+            WHERE LOWER(email) = $1
+            LIMIT 1`,
+            [email]
+        );
+        if (!rows.length || !rows[0].password_hash) {
+            return res.status(401).json({ error: 'invalid_credentials' });
+        }
+    
+        const ok = await bcrypt.compare(password, rows[0].password_hash);
+        if (!ok) return res.status(401).json({ error: 'invalid_credentials' });
+    
+        const token = signJwt({ id: rows[0].id, roles: rows[0].roles || [] });
+    
+        return res.json({
+            user: {
+            id: rows[0].id,
+            name: rows[0].name,
+            email: rows[0].email,
+            roles: rows[0].roles || [],
+            },
+            token,
+        });
+    } catch (err) {
+        console.error('login error:', err);
+        return res.status(500).json({ error: 'internal_error' });
+    }
 }
 
 const roleSet = new Set(['organizer', 'vendor']); // self-assignable
