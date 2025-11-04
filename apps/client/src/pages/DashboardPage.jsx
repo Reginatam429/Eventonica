@@ -6,6 +6,10 @@ import {
     createEvent,
     updateEvent,
     deleteEvent,
+    adminListUsers,
+    adminUpdateUser,
+    adminDeleteUser,
+    getNotifications,
 } from "../api.js";
 
 function EventFormModal({ open, onClose, initialEvent, onSaved, onDeleted }) {
@@ -33,7 +37,6 @@ function EventFormModal({ open, onClose, initialEvent, onSaved, onDeleted }) {
         setAddress(initialEvent.address || "");
         setCapacity(initialEvent.capacity || 100);
 
-        // convert ISO → datetime-local (strip seconds + Z)
         const toLocal = (iso) =>
             iso ? iso.replace(/:\d{2}\.\d+Z$/, "") : "";
 
@@ -219,6 +222,8 @@ function EventFormModal({ open, onClose, initialEvent, onSaved, onDeleted }) {
 
 export default function DashboardPage() {
     const { user } = useAuth();
+
+    // === existing event state ===
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -227,6 +232,17 @@ export default function DashboardPage() {
     const [editingEvent, setEditingEvent] = useState(null);
 
     const isOrganizer = user?.roles?.includes("organizer");
+    const isAdmin = user?.roles?.includes("admin"); // NEW
+
+    // === NEW: admin user management state ===
+    const [users, setUsers] = useState([]);
+    const [usersLoading, setUsersLoading] = useState(false);
+    const [usersError, setUsersError] = useState("");
+
+    // === NEW: notifications inbox state ===
+    const [notifications, setNotifications] = useState([]);
+    const [notifLoading, setNotifLoading] = useState(false);
+    const [notifError, setNotifError] = useState("");
 
     useEffect(() => {
         (async () => {
@@ -241,6 +257,51 @@ export default function DashboardPage() {
         }
         })();
     }, []);
+
+    // NEW: load users for admins
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        (async () => {
+        try {
+            setUsersLoading(true);
+            setUsersError("");
+            const data = await adminListUsers({
+            search: "",
+            role: "",
+            page: 1,
+            pageSize: 50,
+            sort: "created_at",
+            dir: "desc",
+            });
+            setUsers(data.users || data.items || []);
+        } catch (err) {
+            console.error(err);
+            setUsersError("Unable to load users");
+        } finally {
+            setUsersLoading(false);
+        }
+        })();
+    }, [isAdmin]);
+
+    // NEW: load notifications for logged-in user
+    useEffect(() => {
+        if (!user) return;
+
+        (async () => {
+        try {
+            setNotifLoading(true);
+            setNotifError("");
+            const data = await getNotifications();
+            setNotifications(data.notifications || data);
+        } catch (err) {
+            console.error(err);
+            setNotifError("Unable to load notifications");
+        } finally {
+            setNotifLoading(false);
+        }
+        })();
+    }, [user?.id]);
 
     const myOrganizedEvents = useMemo(
         () =>
@@ -266,13 +327,43 @@ export default function DashboardPage() {
         setEvents((prev) => prev.filter((e) => e.id !== id));
     }
 
+    // === NEW: admin helpers ===
+    async function handleToggleAdmin(u) {
+        const hasAdmin = u.roles?.includes("admin");
+        const nextRoles = hasAdmin
+        ? u.roles.filter((r) => r !== "admin")
+        : [...u.roles, "admin"];
+
+        try {
+        const updated = await adminUpdateUser(u.id, { roles: nextRoles });
+        setUsers((prev) =>
+            prev.map((row) => (row.id === u.id ? updated.user || updated : row))
+        );
+        } catch (err) {
+        console.error(err);
+        alert("Unable to update roles");
+        }
+    }
+
+    async function handleDeleteUser(u) {
+        if (!window.confirm(`Delete user ${u.email}? This cannot be undone.`)) {
+        return;
+        }
+        try {
+        await adminDeleteUser(u.id);
+        setUsers((prev) => prev.filter((row) => row.id !== u.id));
+        } catch (err) {
+        console.error(err);
+        alert("Unable to delete user");
+        }
+    }
+
     return (
         <div className="page">
         <div className="page-inner">
             <h1>Dashboard</h1>
             <p className="page-subtitle">
-            Browse events, manage your own, and access tools based on your
-            roles.
+            Browse events, manage your own, and access tools based on your roles.
             </p>
 
             {error && <div className="error-banner">{error}</div>}
@@ -326,56 +417,156 @@ export default function DashboardPage() {
                 ))}
             </section>
 
-            {/* Right column: organizer tools */}
-            {isOrganizer && (
+            {/* Right column: organizer + admin tools */}
+            {(isOrganizer || isAdmin) && (
                 <section className="dashboard-section">
-                <h2>Organizer Tools</h2>
-                <div className="card">
-                    <h3>My Events</h3>
+                {isOrganizer && (
+                    <div className="card" style={{ marginBottom: "1rem" }}>
+                    <h2>Organizer Tools</h2>
                     <button
-                    className="btn primary"
-                    type="button"
-                    onClick={() => {
+                        className="btn primary"
+                        type="button"
+                        onClick={() => {
                         setEditingEvent(null);
                         setModalOpen(true);
-                    }}
+                        }}
                     >
-                    Create Event
+                        Create Event
                     </button>
 
                     {myOrganizedEvents.length === 0 ? (
-                    <p style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
+                        <p style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
                         You haven&apos;t created any events yet.
-                    </p>
+                        </p>
                     ) : (
-                    <ul style={{ marginTop: "0.75rem", paddingLeft: "1rem" }}>
+                        <ul
+                        style={{
+                            marginTop: "0.75rem",
+                            paddingLeft: "1rem",
+                            maxHeight: "250px",
+                            overflowY: "auto",
+                        }}
+                        >
                         {myOrganizedEvents.map((e) => (
-                        <li key={e.id}>
+                            <li key={e.id}>
                             <button
-                            type="button"
-                            className="link-button"
-                            style={{
+                                type="button"
+                                className="link-button"
+                                style={{
                                 background: "none",
                                 border: "none",
                                 padding: 0,
                                 color: "#38bdf8",
                                 cursor: "pointer",
-                            }}
-                            onClick={() => {
+                                }}
+                                onClick={() => {
                                 setEditingEvent(e);
                                 setModalOpen(true);
-                            }}
+                                }}
                             >
-                            {e.title}
+                                {e.title}
                             </button>
-                        </li>
+                            </li>
                         ))}
-                    </ul>
+                        </ul>
                     )}
-                </div>
+                    </div>
+                )}
+
+                {isAdmin && (
+                    <div className="card">
+                    <h2>Admin: Users</h2>
+                    {usersError && (
+                        <div className="error-banner">{usersError}</div>
+                    )}
+                    {usersLoading ? (
+                        <p>Loading users...</p>
+                    ) : users.length === 0 ? (
+                        <p>No users yet.</p>
+                    ) : (
+                        <div className="table-wrapper">
+                        <table className="table">
+                            <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Roles</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {users.map((u) => (
+                                <tr key={u.id}>
+                                <td>{u.name}</td>
+                                <td>{u.email}</td>
+                                <td>{u.roles?.join(", ")}</td>
+                                <td>
+                                    <button
+                                    className="btn secondary small"
+                                    type="button"
+                                    onClick={() => handleToggleAdmin(u)}
+                                    >
+                                    {u.roles?.includes("admin")
+                                        ? "Remove admin"
+                                        : "Make admin"}
+                                    </button>{" "}
+                                    <button
+                                    className="btn danger small"
+                                    type="button"
+                                    onClick={() => handleDeleteUser(u)}
+                                    >
+                                    Delete
+                                    </button>
+                                </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                        </div>
+                    )}
+                    </div>
+                )}
                 </section>
             )}
             </div>
+
+            {/* NEW: notifications inbox (full-width under grid) */}
+            {user && (
+            <section
+                className="dashboard-section"
+                style={{ marginTop: "2rem" }}
+            >
+                <h2>Notifications</h2>
+                {notifError && (
+                <div className="error-banner">{notifError}</div>
+                )}
+                {notifLoading ? (
+                <p>Loading notifications...</p>
+                ) : notifications.length === 0 ? (
+                <p>You have no notifications yet.</p>
+                ) : (
+                <ul className="notifications-list">
+                    {notifications.map((n) => (
+                    <li key={n.id} className="card" style={{ marginBottom: "0.5rem" }}>
+                        <div style={{ fontSize: "0.9rem", color: "#6b7280" }}>
+                        {n.created_at &&
+                            new Date(n.created_at).toLocaleString()}
+                        </div>
+                        <div>{n.message}</div>
+                        {n.event_id && (
+                        <div style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                            Related event:{" "}
+                            <a href={`/events/${n.event_id}`}>
+                            View event
+                            </a>
+                        </div>
+                        )}
+                    </li>
+                    ))}
+                </ul>
+                )}
+            </section>
+            )}
         </div>
 
         <EventFormModal

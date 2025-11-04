@@ -169,5 +169,36 @@ export function listAnalytics(eventId) {
     return request(`/events/${eventId}/analytics`);
 }
 
+// --- ADMIN: Users ---
+
+export function adminListUsers() {
+    // You can add ?page=1&... later if needed
+    return request('/admin/users');
+}
+
+export function adminGetUser(id) {
+    return request(`/admin/users/${id}`);
+}
+
+export function adminUpdateUser(id, data) {
+    // data: { name?, roles? }
+    return request(`/admin/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export function adminDeleteUser(id) {
+    return request(`/admin/users/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+// --- Notifications (inbox) ---
+
+export function getNotifications() {
+    return request('/me/notifications');
+}
+
 // Aliases for pages using older names
 export { checkInTicket as checkinTicket };
