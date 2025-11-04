@@ -4,6 +4,8 @@ import db from '../db.js';
 import { z } from 'zod';
 import { signJwt } from './jwt.js';
 
+// only roles users are allowed to self-assign at signup
+const SELF_ROLES = ['attendee', 'organizer', 'vendor'];
 
 const registerSchema = z.object({
     name: z.string().min(1),
@@ -13,23 +15,66 @@ const registerSchema = z.object({
 
 const normalizeEmail = (e) => String(e || '').trim().toLowerCase();
 
-export async function register(req, res) {
-    const parsed = registerSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: 'invalid_body', details: parsed.error.flatten() });
-    const { name, email, password } = parsed.data;
+function normalizeSelfRoles(clientRoles) {
+    // always at least attendee
+    const base = ['attendee'];
 
-    const hash = await bcrypt.hash(password, 10);
+    if (!Array.isArray(clientRoles)) {
+        return base;
+    }
+
+    // allow only organizer/vendor, never admin
+    for (const r of clientRoles) {
+        const role = String(r).toLowerCase();
+        if (role === 'admin') continue; // ignore
+        if (SELF_ROLES.includes(role) && !base.includes(role)) {
+            base.push(role);
+        }
+    }
+
+    return base;
+} 
+
+export async function register(req, res, next) {
     try {
-        const { rows: [u] } = await pool.query(
-        `INSERT INTO users (name,email,password_hash) VALUES ($1,$2,$3)
-        RETURNING id,name,email,roles`,
-        [name, email, hash]
+        const { name, email, password, roles: requestedRoles } = req.body;
+    
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'missing_fields' });
+        }
+    
+        const normalizedEmail = normalizeEmail(email);
+    
+        // ensure email is not already taken
+        const existing = await query(
+            'SELECT id FROM public.users WHERE email = $1',
+            [normalizedEmail]
         );
-        const token = signJwt({ id: u.id, roles: u.roles });
-        res.status(201).json({ user: u, token });
-    } catch (e) {
-        if (e.code === '23505') return res.status(409).json({ error: 'email_exists' });
-        throw e;
+        if (existing.rows.length > 0) {
+            return res.status(409).json({ error: 'email_in_use' });
+        }
+    
+        const passwordHash = await bcrypt.hash(password, 10);
+    
+        const roles = normalizeSelfRoles(requestedRoles);
+    
+        const result = await query(
+            `INSERT INTO public.users (name, email, password_hash, roles)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, name, email, roles, created_at`,
+            [name, normalizedEmail, passwordHash, roles]
+        );
+    
+        const user = result.rows[0];
+        const token = signToken({
+            id: user.id,
+            roles: user.roles,
+        });
+    
+    return res.status(201).json({ user, token });
+    } catch (err) {
+        console.error('register error:', err);
+        return res.status(500).json({ error: 'internal_error' });
     }
 }
 

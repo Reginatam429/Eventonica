@@ -92,7 +92,7 @@ export default function App() {
                     </PrivateRoute>
                 }
                 />
-    
+        
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

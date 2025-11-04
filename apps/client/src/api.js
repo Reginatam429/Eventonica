@@ -44,10 +44,22 @@ export async function loginRequest(email, password) {
     });
 }
 
-export async function registerRequest({ name, email, password, roles }) {
-    return request("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ name, email, password, roles }),
+// export async function registerRequest({ name, email, password, roles }) {
+//     return request("/auth/register", {
+//         method: "POST",
+//         body: JSON.stringify({ name, email, password, roles }),
+//     });
+// }
+export function registerRequest(name, email, password, extraRoles = []) {
+    return request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+            name,
+            email,
+            password,
+            // backend will merge this with ['attendee'] and sanitize
+            roles: extraRoles,
+        }),
     });
 }
 
